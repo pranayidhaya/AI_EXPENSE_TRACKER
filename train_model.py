@@ -12,7 +12,7 @@ import re
 # Load dataset
 data = pd.read_csv('expenses.csv')
 
-# Preprocessing function
+# Preprocessing
 def clean_text(text):
     text = text.lower()
     text = re.sub(r'\d+', '', text)
@@ -22,30 +22,29 @@ def clean_text(text):
     words = [word for word in words if word not in stop_words]
     return " ".join(words)
 
-# Apply preprocessing
 data['cleaned_desc'] = data['Description'].apply(clean_text)
 
 # Features and labels
 X = data['cleaned_desc']
 y = data['Category']
 
-# Convert text to numerical features
+# Vectorization
 vectorizer = CountVectorizer()
 X_vec = vectorizer.fit_transform(X)
 
-# Train-test split
+# Train/test split
 X_train, X_test, y_train, y_test = train_test_split(X_vec, y, test_size=0.2, random_state=42)
 
 # Model
 model = MultinomialNB()
 model.fit(X_train, y_train)
 
-# Evaluate
+# Evaluation
 y_pred = model.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
 print("Model trained ✅")
 print("Accuracy:", round(accuracy * 100, 2), "%")
 
-# Save model and vectorizer
+# Save model & vectorizer
 joblib.dump(model, 'expense_model.pkl')
 joblib.dump(vectorizer, 'vectorizer.pkl')

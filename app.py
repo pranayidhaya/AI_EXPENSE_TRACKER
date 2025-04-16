@@ -1,38 +1,40 @@
 import streamlit as st
-import joblib
-import re
-import nltk
-from nltk.corpus import stopwords
+from predict import predict_category  # Import prediction function from the predict module
+from db import insert_expense, fetch_all_expenses  # Import DB functions to interact with the database
 
-nltk.download('stopwords')
+# Streamlit UI setup
+st.set_page_config(page_title="AI Expense Tracker with MySQL 🧠💸")
+st.title("AI Expense Tracker with MySQL 🧠💸")
 
-# Load the model and vectorizer
-model = joblib.load('expense_model.pkl')
-vectorizer = joblib.load('vectorizer.pkl')
+# Input fields for expense description and amount
+description = st.text_input("Enter expense description:")
+amount = st.number_input("Enter amount", min_value=0.0, step=0.1)
 
-# Clean text function
-def clean_text(text):
-    text = text.lower()
-    text = re.sub(r'\d+', '', text)
-    text = re.sub(r'[^\w\s]', '', text)
-    stop_words = set(stopwords.words('english'))
-    words = text.split()
-    words = [word for word in words if word not in stop_words]
-    return " ".join(words)
-
-# Streamlit UI
-st.set_page_config(page_title="AI Expense Categorizer", page_icon="💸")
-st.title("💸 AI-Based Expense Tracker")
-st.markdown("Enter a description and get the predicted category!")
-
-# Input
-desc = st.text_input("Enter expense description:")
-
-if st.button("Predict Category"):
-    if desc.strip() == "":
-        st.warning("Please enter a valid description.")
+# If the "Predict & Save" button is clicked
+if st.button("Predict & Save"):
+    if description.strip() == "" or amount <= 0:
+        st.warning("Please enter a valid description and amount.")
     else:
-        cleaned = clean_text(desc)
-        vector = vectorizer.transform([cleaned])
-        prediction = model.predict(vector)
-        st.success(f"Predicted Category: **{prediction[0]}**")
+        # Predict the category using the description
+        category = predict_category(description)
+        
+        # Insert the expense record into the database
+        insert_expense(description, amount, category)
+        
+        # Show success message and trigger Streamlit balloons animation
+        st.success(f"Predicted Category: {category} ✅")
+        st.balloons()
+
+# If the "Show All Expenses" button is clicked
+if st.button("Show All Expenses"):
+    # Fetch all saved expenses from the database
+    data = fetch_all_expenses()
+    
+    # Display the list of expenses
+    st.subheader("📊 Saved Expenses:")
+    if data:
+        for row in data:
+            # Display expense details
+            st.write(f"{row[3].strftime('%Y-%m-%d %H:%M:%S')} | ₹{row[1]} | {row[0]} → {row[2]}")
+    else:
+        st.write("No expenses found.")

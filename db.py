@@ -1,32 +1,25 @@
-# db.py
-
 import mysql.connector
 
-def connect():
+def get_connection():
     return mysql.connector.connect(
-        host="ai_expense_tracker",
-        user="root",
-        password="root",
+        host="127.0.0.1",
+        user="root",         # 🔁 Replace with your credentials
+        password="root",     # 🔁 Replace with your credentials
         database="expense_tracker"
     )
 
 def insert_expense(description, amount, category):
-    db = connect()
-    cursor = db.cursor()
+    conn = get_connection()
+    cursor = conn.cursor()
     query = "INSERT INTO expenses (description, amount, category) VALUES (%s, %s, %s)"
-    values = (description, amount, category)
-    cursor.execute(query, values)
-    db.commit()
-    cursor.close()
-    db.close()
+    cursor.execute(query, (description, amount, category))
+    conn.commit()
+    conn.close()
 
-def get_all_expenses():
-    db = connect()
-    cursor = db.cursor()
+def fetch_all_expenses():
+    conn = get_connection()
+    cursor = conn.cursor()
     cursor.execute("SELECT description, amount, category, date FROM expenses ORDER BY date DESC")
-    rows = cursor.fetchall()
-    cursor.close()
-    db.close()
-    return rows
-
-
+    results = cursor.fetchall()
+    conn.close()
+    return results

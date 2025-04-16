@@ -5,11 +5,11 @@ from nltk.corpus import stopwords
 
 nltk.download('stopwords')
 
-# Load trained model and vectorizer
+# Load trained model & vectorizer
 model = joblib.load('expense_model.pkl')
 vectorizer = joblib.load('vectorizer.pkl')
 
-# Function to clean new input
+# Preprocessing
 def clean_text(text):
     text = text.lower()
     text = re.sub(r'\d+', '', text)
@@ -19,14 +19,14 @@ def clean_text(text):
     words = [word for word in words if word not in stop_words]
     return " ".join(words)
 
-# Input from user
-new_expense = input("Enter an expense description: ")
+# Predict function
+def predict_category(description):
+    cleaned = clean_text(description)
+    vector = vectorizer.transform([cleaned])
+    prediction = model.predict(vector)
+    return prediction[0]
 
-# Clean and transform
-cleaned = clean_text(new_expense)
-vector = vectorizer.transform([cleaned])
-
-# Predict
-prediction = model.predict(vector)
-
-print(f"Predicted Category: {prediction[0]}")
+# Optional CLI
+if __name__ == "__main__":
+    user_input = input("Enter an expense description: ")
+    print("Predicted Category:", predict_category(user_input))
