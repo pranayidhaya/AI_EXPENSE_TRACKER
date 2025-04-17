@@ -2,7 +2,10 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import accuracy_score
+from sklearn.preprocessing import LabelEncoder
+from datetime import datetime
 import joblib
 import nltk
 nltk.download('stopwords')
@@ -24,27 +27,58 @@ def clean_text(text):
 
 data['cleaned_desc'] = data['Description'].apply(clean_text)
 
-# Features and labels
-X = data['cleaned_desc']
-y = data['Category']
+# Features and labels for categorization
+X_cat = data['cleaned_desc']
+y_cat = data['Category']
 
-# Vectorization
+# Vectorize the description column using CountVectorizer
 vectorizer = CountVectorizer()
-X_vec = vectorizer.fit_transform(X)
+X_cat_vec = vectorizer.fit_transform(X_cat)
 
-# Train/test split
-X_train, X_test, y_train, y_test = train_test_split(X_vec, y, test_size=0.2, random_state=42)
+# Train-test split for categorization model
+X_train_cat, X_test_cat, y_train_cat, y_test_cat = train_test_split(X_cat_vec, y_cat, test_size=0.2, random_state=42)
 
-# Model
-model = MultinomialNB()
-model.fit(X_train, y_train)
+# Model: Naive Bayes for categorization
+cat_model = MultinomialNB()
+cat_model.fit(X_train_cat, y_train_cat)
 
-# Evaluation
-y_pred = model.predict(X_test)
-accuracy = accuracy_score(y_test, y_pred)
-print("Model trained ✅")
-print("Accuracy:", round(accuracy * 100, 2), "%")
+# Evaluate categorization model
+y_pred_cat = cat_model.predict(X_test_cat)
+accuracy_cat = accuracy_score(y_test_cat, y_pred_cat)
+print("Categorization Model Accuracy: ", round(accuracy_cat * 100, 2), "%")
 
-# Save model & vectorizer
-joblib.dump(model, 'expense_model.pkl')
-joblib.dump(vectorizer, 'vectorizer.pkl')
+# Save the categorization model and vectorizer
+joblib.dump(cat_model, 'expense_category_model.pkl')
+joblib.dump(vectorizer, 'category_vectorizer.pkl')
+
+# ====== Part 2: Forecasting Model ======
+
+# Preprocess data for forecasting model
+data['Date'] = pd.to_datetime(data['Date'])
+data['DayOfYear'] = data['Date'].dt.dayofyear  # Feature: Day of the year
+
+# Label encode the categories for forecasting model
+encoder = LabelEncoder()
+data['CategoryEncoded'] = encoder.fit_transform(data['Category'])
+
+# Features and labels for forecasting
+X_forecast = data[['DayOfYear', 'CategoryEncoded']]
+y_forecast = data['Amount']
+
+# Train-test split for forecasting model
+X_train_forecast, X_test_forecast, y_train_forecast, y_test_forecast = train_test_split(X_forecast, y_forecast, test_size=0.2, random_state=42)
+
+# Model: Linear Regression for forecasting
+forecast_model = LinearRegression()
+forecast_model.fit(X_train_forecast, y_train_forecast)
+
+# Evaluate forecasting model
+y_pred_forecast = forecast_model.predict(X_test_forecast)
+forecast_model_score = forecast_model.score(X_test_forecast, y_test_forecast)
+print("Forecasting Model R^2 Score: ", round(forecast_model_score, 2))
+
+# Save the forecasting model and encoder
+joblib.dump(forecast_model, 'expense_forecasting_model.pkl')
+joblib.dump(encoder, 'category_encoder.pkl')
+
+print("Both models (Categorization and Forecasting) have been trained and saved successfully!")
